@@ -1,0 +1,1 @@
+const Database=require("better-sqlite3"),fs=require("fs"),path=require("path");fs.mkdirSync(path.join(__dirname,"data"),{recursive:true});const db=new Database(path.join(__dirname,"data","fitfreak.db"));db.pragma("foreign_keys=ON");db.pragma("journal_mode=WAL");db.exec(fs.readFileSync(path.join(__dirname,"..","database","schema.sql"),"utf8"));module.exports=db;
