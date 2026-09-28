@@ -2,21 +2,38 @@ const path = require("path");
 const fs = require("fs");
 const { createClient } = require("@libsql/client");
 
-const localFile = path.join(__dirname, "data", "fitfreak.db");
-fs.mkdirSync(path.dirname(localFile), { recursive: true });
+// FITFREAK supports two database modes:
+// 1) Local development: SQLite file under backend/data.
+// 2) Vercel production: Turso/libSQL via environment variables.
+// Never try to mkdir/write inside /var/task on Vercel; the deployed bundle is read-only.
 
-const url = process.env.TURSO_DATABASE_URL || `file:${localFile}`;
-const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
+const isVercel = Boolean(process.env.VERCEL);
+const hasRemoteDb = Boolean(process.env.TURSO_DATABASE_URL);
+
+let url;
+let authToken;
+
+if (hasRemoteDb) {
+  url = process.env.TURSO_DATABASE_URL;
+  authToken = process.env.TURSO_AUTH_TOKEN || undefined;
+} else if (isVercel) {
+  // Safe emergency/demo fallback when Turso variables have not been added yet.
+  // /tmp is writable on Vercel, but it is ephemeral. Configure Turso for real persistence.
+  url = "file:/tmp/fitfreak.db";
+  console.warn("FITFREAK: TURSO_DATABASE_URL is not configured. Using ephemeral /tmp SQLite on Vercel.");
+} else {
+  const dataDir = path.join(__dirname, "data");
+  fs.mkdirSync(dataDir, { recursive: true });
+  url = `file:${path.join(dataDir, "fitfreak.db")}`;
+}
 
 const client = createClient({
   url,
   ...(authToken ? { authToken } : {})
 });
 
-const schema = fs.readFileSync(
-  path.join(__dirname, "..", "database", "schema.sql"),
-  "utf8"
-);
+const schemaPath = path.join(__dirname, "..", "database", "schema.sql");
+const schema = fs.readFileSync(schemaPath, "utf8");
 
 let readyPromise;
 
@@ -36,8 +53,17 @@ async function initialize() {
   await client.execute({
     sql: `INSERT OR IGNORE INTO users
       (name,email,password_hash,age,height_cm,weight_kg,fitness_level,bio)
-      VALUES (?,?,?,?,?,?,?,?)`,
-    args: ["Alex Morgan", "demo@fitfreak.local", demoHash, 22, 178, 72, "Advanced", "Training smart. Living strong."]
+      VALUES(?,?,?,?,?,?,?,?)`,
+    args: [
+      "Alex Morgan",
+      "demo@fitfreak.local",
+      demoHash,
+      22,
+      178,
+      72,
+      "Advanced",
+      "Training smart. Living strong."
+    ]
   });
 
   const workouts = [
@@ -59,16 +85,10 @@ async function initialize() {
     });
   }
 
-  const user = await one(
-    "SELECT id FROM users WHERE email=?",
-    ["demo@fitfreak.local"]
-  );
+  const user = await one("SELECT id FROM users WHERE email=?", ["demo@fitfreak.local"]);
 
   if (user) {
-    const goalCount = await one(
-      "SELECT COUNT(*) AS c FROM goals WHERE user_id=?",
-      [user.id]
-    );
+    const goalCount = await one("SELECT COUNT(*) AS c FROM goals WHERE user_id=?", [user.id]);
     if (Number(goalCount.c) === 0) {
       const goals = [
         ["Weekly training",240,180,"min","Training","2026-10-04"],
@@ -84,10 +104,7 @@ async function initialize() {
       }
     }
 
-    const progressCount = await one(
-      "SELECT COUNT(*) AS c FROM progress WHERE user_id=?",
-      [user.id]
-    );
+    const progressCount = await one("SELECT COUNT(*) AS c FROM progress WHERE user_id=?", [user.id]);
     if (Number(progressCount.c) === 0) {
       const rows = [
         [76,20.5,"2026-07-01"],
@@ -119,9 +136,7 @@ function ready() {
 
 async function all(sql, args = []) {
   const result = await client.execute({ sql, args });
-  return result.rows.map((row) => Object.fromEntries(
-    Object.entries(row).map(([k, v]) => [k, v])
-  ));
+  return result.rows.map((row) => Object.fromEntries(Object.entries(row)));
 }
 
 async function one(sql, args = []) {
