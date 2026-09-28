@@ -1,1 +1,17 @@
-{"name":"vitala-health-fitness","version":"2.0.0","scripts":{"start":"node backend/server.js","dev":"node --watch backend/server.js","seed":"node backend/seed.js"},"dependencies":{"bcryptjs":"^2.4.3","better-sqlite3":"^11.10.0","cors":"^2.8.5","express":"^5.1.0","jsonwebtoken":"^9.0.2"}}
+{
+  "name": "fitfreak-health-fitness",
+  "version": "3.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "seed": "node backend/seed.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.15",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
