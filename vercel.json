@@ -1,15 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index.js" },
-    { "source": "/", "destination": "/frontend/index.html" },
-    { "source": "/pages/:path*", "destination": "/frontend/pages/:path*" },
-    { "source": "/css/:path*", "destination": "/frontend/css/:path*" },
-    { "source": "/js/:path*", "destination": "/frontend/js/:path*" }
-  ],
-  "functions": {
-    "api/index.js": {
-      "includeFiles": ["database/schema.sql"]
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/pages/:path*",
+      "destination": "/frontend/pages/:path*"
+    },
+    {
+      "source": "/css/:path*",
+      "destination": "/frontend/css/:path*"
+    },
+    {
+      "source": "/js/:path*",
+      "destination": "/frontend/js/:path*"
     }
-  }
+  ]
 }
